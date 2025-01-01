@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Get Started</title>
+    <link rel="stylesheet" href="/static/css/landing.css">
+    <script src="https://kit.fontawesome.com/27fb6258dc.js" crossorigin="anonymous"></script>
+</head>
+<body style="background-image: url('/static/images/signin.jpg');">
+    <section class="right-section-signup">
+        <div class="auth-card">
+            <h2>Welcome Back!</h2>
+            <p>Sign In to continue to your account</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul>
+                        {% for category, message in messages %}
+                            <li class="flash {{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <!-- The form now has method="POST" and action="{{ url_for('signin') }}" -->
+            <form method="POST" action="{{ url_for('signin') }}">
+                <div class="input-group">
+                    <!-- Added name="username" to send this data correctly -->
+                    <input type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="input-group">
+                    <!-- Added name="password" to send this data correctly -->
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <div>
+                    <p>Or Continue with:</p>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-google"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <button type="submit" class="signin-btn">Sign In</button>
+            </form>
+            <a href="/signup" class="signup-link">Don't have an account? Sign Up</a>
+        </div>
+    </section>
+</body>
+</html>

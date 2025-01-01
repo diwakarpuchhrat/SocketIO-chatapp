@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            color: #e0e0e0;
+            background-color: #000000;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: rgba(23, 23, 23, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(255, 59, 48, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 32px;
+            background: linear-gradient(to right, #ff6b6b, #ff8e8e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        #message-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        #message-input:focus {
+            outline: none;
+            border-color: rgba(255, 59, 48, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #room-id {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        #room-id:focus {
+            outline: none;
+            border-color: rgba(255, 59, 48, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: rgba(255, 59, 48, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, #ff6b6b, #ff8e8e);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.2);
+        }
+
+        #chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            margin: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .message-left, .message-right {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-left {
+            background: linear-gradient(to right, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .message-right {
+            background: linear-gradient(to left, #ff6b6b, #ff8e8e);
+            align-self: flex-end;
+            margin-left: auto;
+            color: #fff;
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #message-input {
+            flex-grow: 1;
+        }
+
+        #send-msg-btn {
+            width: auto;
+            padding: 12px 24px;
+        }
+
+        .room-info {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">Streamline</div>
+        <h2>Welcome, <span id="username">{{ username }}</span></h2>
+        {% if room_id %}
+            <div class="room-info">
+                <p>Room ID: <strong id="room-id">{{ room_id }}</strong></p>
+            </div>
+        {% endif %}
+        <div class="welcome-text">
+            Connect and chat instantly with friends and colleagues around the world.
+        </div>
+        <form action="/create_room" method="POST">
+            <button type="submit">Create New Room</button>
+        </form>
+        <form action="/join_room" method="POST">
+            <input name="room_id" id="room-id" placeholder="Enter Room ID to Join" required>
+            <button type="submit">Join Room</button>
+        </form>
+        <form action="/logout" method="POST">
+            <button type="submit" style="background: rgba(255, 255, 255, 0.1);">Logout</button>
+        </form>
+    </div>
+    <div class="main-content">
+        <div id="chat-box"></div>
+        <div class="chat-controls">
+            <input id="message-input" placeholder="Type your message...">
+            <button id="send-msg-btn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+    
+        const roomId = "{{ room_id }}";
+        if (roomId) {
+            socket.emit('join', { room: roomId });
+        }
+    
+        document.getElementById('send-msg-btn').addEventListener('click', () => {
+            sendMessage();
+        });
+    
+        document.getElementById('message-input').addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+    
+        function sendMessage() {
+            const message = document.getElementById('message-input').value;
+            if (message.trim()) {
+                socket.emit('send_message', { room: roomId, message: message });
+                document.getElementById('message-input').value = '';
+            }
+        }
+    
+        function addMessage(user, message, side) {
+            const chatBox = document.getElementById('chat-box');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message-${side}`;
+            messageElement.innerHTML = `<strong>${user}:</strong> ${message}`;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    
+        socket.on('message', (data) => {
+            const side = data.user === 'You' ? 'left' : 'right';
+            addMessage(data.user, data.message, side);
+        });
+    </script>
+</body>
+</html>
